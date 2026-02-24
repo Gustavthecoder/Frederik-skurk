@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<title>💰 Clicker Empire: Gustav Uldal vs Frederik Ottow</title>
+<style>
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #0f1220;
+    color: #eaeaf0;
+  }
+  header {
+    position: sticky;
+    top: 0;
+    background: #181b2e;
+    padding: 12px 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    z-index: 10;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 20px;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  section {
+    margin-bottom: 40px;
+  }
+  .card {
+    background: #181b2e;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    margin-bottom: 20px;
+  }
+  .big-btn {
+    width: 100%;
+    height: 140px;
+    font-size: 32px;
+    font-weight: 800;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    background: #4f7cff;
+    color: white;
+  }
+  .big-btn:active {
+    transform: scale(0.98);
+  }
+  button {
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background: #4f7cff;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: #2a2f55;
+  }
+  .stat {
+    margin: 6px 0;
+  }
+  .milestone {
+    background: #0f1220;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .mine-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .tile {
+    height: 50px;
+    background: #2a2f55;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .tile.revealed.safe { background: #2e7d32; }
+  .tile.revealed.mine { background: #b71c1c; }
+  .log {
+    margin-top: 10px;
+    font-size: 14px;
+    max-height: 140px;
+    overflow-y: auto;
+    background: #0f1220;
+    padding: 10px;
+    border-radius: 10px;
+  }
+  .popup {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #22265a;
+    padding: 12px 16px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    animation: fade 4s forwards;
+    z-index: 100;
+  }
+  @keyframes fade {
+    0% { opacity: 0; transform: translateY(10px); }
+    10% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💰 Clicker Empire — Gustav Uldal (Helt) vs Frederik Ottow (Skurk)</h1>
+</header>
+
+<div class="container">
+
+  <!-- SECTION: EMPIRE -->
+  <section>
+    <h2>🏦 Dit Imperium</h2>
+    <div class="card">
+      <div class="stat">Balance: <b><span id="money">0</span></b></div>
+      <div class="stat">Per click: <b><span id="perClick">1</span></b></div>
+      <div class="stat">Rebirth bonus: <b><span id="rebirthBonus">1.00x</span></b></div>
+      <div class="stat">Rebirth krav: <b><span id="rebirthReq">1000</span></b> (mangler <span id="rebirthMissing">1000</span>)</div>
+
+      <button class="big-btn" id="clickBtn">💥 TJEN PENGE</button>
+
+      <div style="margin-top:10px;">
+        <button id="upgradeBtn">Upgrade (+1 per click) - Pris: <span id="upgradeCost">50</span></button>
+        <button class="secondary" id="rebirthBtn">🔁 Rebirth</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION: MILESTONES -->
+  <section>
+    <h2>🏆 Milestones</h2>
+    <div class="card">
+      <div id="milestones"></div>
+    </div>
+  </section>
+
+  <!-- SECTION: MINEFIELD -->
+  <section>
+    <h2>💣 Minefield (Frederik Ottows Fælde)</h2>
+    <div class="card">
+      <div>Indsats: <input id="mineBet" type="number" value="50" min="1" style="width:100px;"></div>
+      <div style="margin-top:8px;">
+        <button id="startMine">Start Minefield</button>
+        <button class="secondary" id="cashOut">Cash out</button>
+      </div>
+      <div class="mine-grid" id="mineGrid"></div>
+      <div class="log" id="log"></div>
+    </div>
+  </section>
+
+  <!-- SECTION: LORE -->
+  <section>
+    <h2>📜 Historien</h2>
+    <div class="card">
+      <p><b>Gustav Uldal</b> er helten, der tror på dit imperium og hepper på dig.</p>
+      <p><b>Frederik Ottow</b> er den fiktive skurk, der prøver at lokke dig i fælder og håne dig, når du gambler.</p>
+      <p>Kan du blive rig nok til at rebirthe igen og igen og knuse skurkens planer? 😈</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+let money = 0;
+let perClick = 1;
+let upgradeCost = 50;
+let rebirths = 0;
+let rebirthBonus = 1;
+let rebirthRequirement = 1000;
+
+const heroMessages = [
+  "🦸 Gustav Uldal: Jeg tror på dig!",
+  "🦸 Gustav Uldal: Du bygger noget stort her!",
+  "🦸 Gustav Uldal: Bliv ved, du gør det fantastisk!",
+  "🦸 Gustav Uldal: Dit imperium vokser hver dag!"
+];
+
+const villainMessages = [
+  "😈 Frederik Ottow: Haha, du tør ikke satse mere!",
+  "😈 Frederik Ottow: Dit held slipper snart op!",
+  "😈 Frederik Ottow: Jeg elsker at se dig fejle!",
+  "😈 Frederik Ottow: Mine fælder venter på dig..."
+];
+
+const milestonesData = [
+  { amount: 100, text: "100 coins: +1 per click", bonus: 1 },
+  { amount: 500, text: "500 coins: +2 per click", bonus: 2 },
+  { amount: 2000, text: "2000 coins: +5 per click", bonus: 5 },
+  { amount: 10000, text: "10000 coins: +10 per click", bonus: 10 }
+];
+let unlockedMilestones = new Set();
+
+// UI
+const moneyEl = document.getElementById("money");
+const perClickEl = document.getElementById("perClick");
+const upgradeCostEl = document.getElementById("upgradeCost");
+const rebirthBonusEl = document.getElementById("rebirthBonus");
+const rebirthReqEl = document.getElementById("rebirthReq");
+const rebirthMissingEl = document.getElementById("rebirthMissing");
+const milestonesEl = document.getElementById("milestones");
+const logEl = document.getElementById("log");
+
+function updateUI() {
+  moneyEl.textContent = Math.floor(money);
+  perClickEl.textContent = perClick;
+  upgradeCostEl.textContent = upgradeCost;
+  rebirthBonusEl.textContent = rebirthBonus.toFixed(2) + "x";
+  rebirthReqEl.textContent = rebirthRequirement;
+  const missing = Math.max(0, Math.floor(rebirthRequirement - money));
+  rebirthMissingEl.textContent = missing;
+}
+
+function showPopup(text) {
+  const div = document.createElement("div");
+  div.className = "popup";
+  div.textContent = text;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+
+function log(msg) {
+  const div = document.createElement("div");
+  div.textContent = msg;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// Click
+document.getElementById("clickBtn").onclick = () => {
+  money += perClick * rebirthBonus;
+  checkMilestones();
+  updateUI();
+
+  if (Math.random() < 0.1) {
+    const msg = heroMessages[Math.floor(Math.random() * heroMessages.length)];
+    showPopup(msg);
+  }
+};
+
+// Upgrade
+document.getElementById("upgradeBtn").onclick = () => {
+  if (money >= upgradeCost) {
+    money -= upgradeCost;
+    perClick += 1;
+    upgradeCost = Math.floor(upgradeCost * 1.6);
+    updateUI();
+  }
+};
+
+// Rebirth
+document.getElementById("rebirthBtn").onclick = () => {
+  if (money >= rebirthRequirement) {
+    rebirths++;
+    rebirthBonus = 1 + rebirths * 0.25;
+    money = 0;
+    perClick = 1;
+    upgradeCost = 50;
+    unlockedMilestones.clear();
+    rebirthRequirement = Math.floor(rebirthRequirement * 2);
+    renderMilestones();
+    showPopup("🔁 Rebirth! Gustav Uldal: Du er stærkere end før!");
+    updateUI();
+  } else {
+    showPopup("🦸 Gustav Uldal: Du mangler stadig lidt før rebirth!");
+  }
+};
+
+// Milestones
+function renderMilestones() {
+  milestonesEl.innerHTML = "";
+  milestonesData.forEach(m => {
+    const div = document.createElement("div");
+    div.className = "milestone";
+    div.textContent = (unlockedMilestones.has(m.amount) ? "✅ " : "🔒 ") + m.text;
+    milestonesEl.appendChild(div);
+  });
+}
+
+function checkMilestones() {
+  milestonesData.forEach(m => {
+    if (money >= m.amount && !unlockedMilestones.has(m.amount)) {
+      unlockedMilestones.add(m.amount);
+      perClick += m.bonus;
+      showPopup("🏆 Milestone unlocked: " + m.text);
+      renderMilestones();
+    }
+  });
+}
+
+// Minefield
+const gridEl = document.getElementById("mineGrid");
+let mineActive = false;
+let mineBet = 0;
+let mineMultiplier = 1;
+let mines = [];
+let revealed = new Set();
+
+document.getElementById("startMine").onclick = () => {
+  const bet = parseInt(document.getElementById("mineBet").value, 10);
+  if (mineActive) return;
+  if (bet > money || bet <= 0) {
+    log("⚠️ Ugyldig indsats.");
+    return;
+  }
+  money -= bet;
+  mineBet = bet;
+  mineMultiplier = 1;
+  mineActive = true;
+  revealed.clear();
+
+  mines = [];
+  while (mines.length < 5) {
+    const r = Math.floor(Math.random() * 25);
+    if (!mines.includes(r)) mines.push(r);
+  }
+
+  gridEl.innerHTML = "";
+  for (let i = 0; i < 25; i++) {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    tile.textContent = "?";
+    tile.onclick = () => clickTile(i, tile);
+    gridEl.appendChild(tile);
+  }
+
+  log("💣 Minefield startet. Frederik Ottow smiler ondt...");
+  updateUI();
+};
+
+function clickTile(i, tile) {
+  if (!mineActive || revealed.has(i)) return;
+  revealed.add(i);
+
+  if (mines.includes(i)) {
+    tile.classList.add("revealed", "mine");
+    tile.textContent = "💥";
+    mineActive = false;
+    const msg = villainMessages[Math.floor(Math.random() * villainMessages.length)];
+    showPopup(msg);
+    log("😈 Boom! Du tabte din indsats.");
+  } else {
+    tile.classList.add("revealed", "safe");
+    tile.textContent = "💎";
+    mineMultiplier += 0.5;
+    log("✅ Sikker! Multiplier: " + mineMultiplier.toFixed(2) + "x");
+  }
+}
+
+document.getElementById("cashOut").onclick = () => {
+  if (!mineActive) return;
+  const win = Math.floor(mineBet * mineMultiplier);
+  money += win;
+  mineActive = false;
+  log("💰 Du cashout'er og vinder " + win + "!");
+  updateUI();
+};
+
+// Init
+renderMilestones();
+updateUI();
+log("Velkommen! Gustav Uldal hepper på dig. Frederik Ottow lægger fælder...");
+</script>
+</body>
+</html>
